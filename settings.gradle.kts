@@ -21,3 +21,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "Visual Eva"
 include(":app")
+include(":data-photos")
+include(":data-camera")
+include(":domain-camera")
+include(":domain-core")

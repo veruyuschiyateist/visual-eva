@@ -3,45 +3,56 @@ package com.vsial.eva.visualeva
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.vsial.eva.visualeva.ui.features.CameraRoute
+import com.vsial.eva.visualeva.ui.features.PhotosRoute
+import com.vsial.eva.visualeva.ui.features.LocalNavController
+import com.vsial.eva.visualeva.ui.features.camera.CameraScreen
+import com.vsial.eva.visualeva.ui.features.photos.PhotosScreen
 import com.vsial.eva.visualeva.ui.theme.VisualEvaTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+
         setContent {
             VisualEvaTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                VisualEvaNavApp()
             }
         }
     }
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
+fun VisualEvaNavApp() {
+    val navController = rememberNavController()
+    CompositionLocalProvider(
+        LocalNavController provides navController
+    ) {
+        NavHost(
+            navController = navController,
+            startDestination = PhotosRoute,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            composable<PhotosRoute> { PhotosScreen() }
+            composable<CameraRoute> { CameraScreen() }
+        }
+    }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun GreetingPreview() {
     VisualEvaTheme {
-        Greeting("Android")
+        VisualEvaNavApp()
     }
 }
