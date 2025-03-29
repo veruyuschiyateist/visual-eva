@@ -1,5 +1,6 @@
 package com.vsial.eva.visualeva.ui.features.camera
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vsial.eva.domain_camera.interactors.CapturePhotoUseCase
@@ -15,6 +16,12 @@ class CameraViewModel @Inject constructor(
     private val capturePhotoUseCase: CapturePhotoUseCase,
     private val getAvailableCamerasUseCase: GetAvailableCamerasUseCase
 ) : ViewModel() {
+
+    init {
+        viewModelScope.launch {
+            Log.d("CameraViewModel", "${getAvailableCamerasUseCase.invoke()}")
+        }
+    }
 
     fun toggleCamera() {
         switchCameraUseCase.toggleFrontBack()

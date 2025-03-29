@@ -48,6 +48,8 @@ dependencies {
 
     // Camera
     implementation(libs.androidx.camera.view)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.camera2)
 
     // Hilt
     implementation(libs.hilt)
