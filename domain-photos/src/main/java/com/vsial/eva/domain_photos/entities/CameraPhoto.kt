@@ -1,4 +1,4 @@
-package com.vsial.eva.domain_photos.model
+package com.vsial.eva.domain_photos.entities
 
 data class CameraPhoto(
     val id: String,

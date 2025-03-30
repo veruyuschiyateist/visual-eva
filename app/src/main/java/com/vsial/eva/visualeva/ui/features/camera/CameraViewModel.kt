@@ -1,6 +1,5 @@
 package com.vsial.eva.visualeva.ui.features.camera
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vsial.eva.domain_camera.interactors.CapturePhotoUseCase

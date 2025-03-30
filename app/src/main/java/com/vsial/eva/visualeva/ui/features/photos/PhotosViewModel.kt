@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vsial.eva.domain_core.Result
 import com.vsial.eva.domain_photos.interactors.GetAllLocalPhotosUseCase
-import com.vsial.eva.domain_photos.model.CameraPhoto
+import com.vsial.eva.domain_photos.entities.CameraPhoto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow

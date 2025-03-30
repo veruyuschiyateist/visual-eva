@@ -11,6 +11,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.vsial.eva.visualeva.ui.features.CameraRoute
 import com.vsial.eva.visualeva.ui.features.FiltersRoute
 import com.vsial.eva.visualeva.ui.features.PhotosRoute
@@ -47,7 +48,10 @@ fun VisualEvaNavApp() {
         ) {
             composable<PhotosRoute> { PhotosScreen() }
             composable<CameraRoute> { CameraScreen() }
-            composable<FiltersRoute> { FiltersScreen() }
+            composable<FiltersRoute> { entry ->
+                val route: FiltersRoute = entry.toRoute()
+                FiltersScreen(imageUri = route.imageUri)
+            }
         }
     }
 }

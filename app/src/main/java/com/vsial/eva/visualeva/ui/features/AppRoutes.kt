@@ -9,4 +9,6 @@ data object PhotosRoute
 data object CameraRoute
 
 @Serializable
-data object FiltersRoute
+data class FiltersRoute(
+    val imageUri: String
+)

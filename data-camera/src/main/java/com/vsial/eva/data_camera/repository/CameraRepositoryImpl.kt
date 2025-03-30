@@ -20,6 +20,7 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.LifecycleCameraController
 import androidx.core.content.ContextCompat
+import com.vsial.eva.data_camera.processors.BitmapTransformer
 import com.vsial.eva.domain_camera.entity.CameraInfo
 import com.vsial.eva.domain_camera.entity.CameraType
 import com.vsial.eva.domain_camera.entity.PhotoPath
@@ -105,8 +106,12 @@ class CameraRepositoryImpl @Inject constructor(
                 ContextCompat.getMainExecutor(context),
                 object : ImageCapture.OnImageCapturedCallback() {
                     override fun onCaptureSuccess(image: ImageProxy) {
-                        val bitmap = image.toBitmap().rotateBitmap(image.imageInfo.rotationDegrees)
-                        val result = saveImage(bitmap)
+                        val isFront = !isBackCamera
+
+                        val transformedBitmap =
+                            BitmapTransformer.transform(image, isFront)
+
+                        val result = saveImage(transformedBitmap)
                         image.close()
 
                         continuation.resume(result)
@@ -120,15 +125,6 @@ class CameraRepositoryImpl @Inject constructor(
                 }
             )
         }
-    }
-
-    fun Bitmap.rotateBitmap(rotationDegrees: Int): Bitmap {
-        val matrix = Matrix().apply {
-            postRotate(-rotationDegrees.toFloat())
-            postScale(-1f, -1f)
-        }
-
-        return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
     }
 
     private fun saveImage(capturePhotoBitmap: Bitmap): Result<PhotoPath> {

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalPermissionsApi::class)
+
 package com.vsial.eva.visualeva.ui.features.photos
 
 import androidx.compose.foundation.background
@@ -19,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,8 +39,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import com.vsial.eva.domain_core.Result
-import com.vsial.eva.domain_photos.model.CameraPhoto
+import com.vsial.eva.domain_photos.entities.CameraPhoto
 import com.vsial.eva.visualeva.ui.components.PillIconBar
 import com.vsial.eva.visualeva.ui.features.CameraRoute
 import com.vsial.eva.visualeva.ui.features.FiltersRoute
@@ -48,6 +54,16 @@ fun PhotosScreen() {
     val navController = LocalNavController.current
     val viewModel = hiltViewModel<PhotosViewModel>()
     val photosState by viewModel.localPhotosFlow.collectAsStateWithLifecycle()
+
+    val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
+    var requestedCamera by remember { mutableStateOf(false) }
+
+    LaunchedEffect(cameraPermissionState.status.isGranted, requestedCamera) {
+        if (cameraPermissionState.status.isGranted && requestedCamera) {
+            navController.navigate(CameraRoute)
+            requestedCamera = false
+        }
+    }
 
     val images: List<CameraPhoto> = when (photosState) {
         is Result.Success<*> -> {
@@ -63,11 +79,16 @@ fun PhotosScreen() {
 
     PhotosContent(
         imagesList = { images },
-        onItemClick = {
-            navController.navigate(FiltersRoute)
+        onImageClicked = { imageUri ->
+            navController.navigate(FiltersRoute(imageUri))
         },
-        onCameraClick = {
-            navController.navigate(CameraRoute)
+        onCameraClicked = {
+            if (cameraPermissionState.status.isGranted) {
+                navController.navigate(CameraRoute)
+            } else {
+                requestedCamera = true
+                cameraPermissionState.launchPermissionRequest()
+            }
         },
         onGalleryClicked = {}
     )
@@ -76,8 +97,8 @@ fun PhotosScreen() {
 @Composable
 fun PhotosContent(
     imagesList: () -> List<CameraPhoto>,
-    onItemClick: () -> Unit,
-    onCameraClick: () -> Unit,
+    onImageClicked: (String) -> Unit,
+    onCameraClicked: () -> Unit,
     onGalleryClicked: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf("Recents") }
@@ -131,10 +152,10 @@ fun PhotosContent(
 
             SelectableImageGrid(
                 items = imagesList.invoke(),
-                onItemClick = { onItemClick.invoke() }
+                onItemClick = { onImageClicked.invoke(it) }
             )
         }
-                
+
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -142,7 +163,7 @@ fun PhotosContent(
         ) {
             PillIconBar(
                 onPhotoCameraClick = {
-                    onCameraClick.invoke()
+                    onCameraClicked.invoke()
                 },
                 onGalleryClick = {}
             )
@@ -167,7 +188,7 @@ fun SelectableImageGrid(
         items(items) { itemImage ->
             ImageGridItem(
                 item = itemImage,
-                onClick = { onItemClick(itemImage.id) }
+                onClick = { onItemClick(itemImage.uri) }
             )
         }
     }
@@ -202,8 +223,8 @@ fun ImageGridItem(
 fun GalleryPreview() {
     PhotosContent(
         imagesList = { emptyList() },
-        onItemClick = {},
-        onCameraClick = {},
+        onImageClicked = {},
+        onCameraClicked = {},
         onGalleryClicked = {}
     )
 }

@@ -28,7 +28,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -40,11 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
-import com.google.accompanist.permissions.shouldShowRationale
-import com.vsial.eva.visualeva.ui.features.CameraRoute
-import com.vsial.eva.visualeva.ui.features.PhotosRoute
+
 import com.vsial.eva.visualeva.ui.features.LocalNavController
 
 @Composable
@@ -55,41 +50,15 @@ fun CameraScreen() {
 
     val navController = LocalNavController.current
 
-    val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
-
-    LaunchedEffect(Unit) {
-        cameraPermissionState.launchPermissionRequest()
-    }
-
-    /*
-        Permissions temporarily added here, but should be moved to the Photos Screen
-     */
-    when {
-        cameraPermissionState.status.isGranted -> {
-            CameraContent(
-                state = cameraState,
-                onPhotosClicked = {
-                    navController.popBackStack()
-                },
-                onToggleCamera = viewModel::toggleCamera,
-                onCapturePhoto = viewModel::capturePhoto,
-                onSelectCamera = viewModel::selectCamera
-            )
-        }
-
-        !cameraPermissionState.status.shouldShowRationale && !cameraPermissionState.status.isGranted -> {
-            LaunchedEffect(Unit) {
-                navController.navigate(PhotosRoute) {
-                    popUpTo(CameraRoute) { inclusive = true }
-                }
-            }
-        }
-
-
-        else -> {
-            // Waiting for permission - Loading
-        }
-    }
+    CameraContent(
+        state = cameraState,
+        onPhotosClicked = {
+            navController.popBackStack()
+        },
+        onToggleCamera = viewModel::toggleCamera,
+        onCapturePhoto = viewModel::capturePhoto,
+        onSelectCamera = viewModel::selectCamera
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

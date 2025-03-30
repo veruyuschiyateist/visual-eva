@@ -10,4 +10,5 @@ abstract class DefaultIoDispatcherUseCase<Result> {
     suspend fun get(): Result = withContext(Dispatchers.IO) {
         invoke()
     }
+
 }
