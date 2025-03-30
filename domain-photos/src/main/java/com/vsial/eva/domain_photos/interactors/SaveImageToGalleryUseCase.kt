@@ -6,12 +6,13 @@ import com.vsial.eva.domain_photos.entities.ShareImageRequest
 import com.vsial.eva.domain_photos.repository.PhotosRepository
 import javax.inject.Inject
 
-class ShareFilteredImageUseCase @Inject constructor(
+class SaveImageToGalleryUseCase @Inject constructor(
     private val photosRepository: PhotosRepository
-) : UseCaseIoDispatcherWithRequest<Result<String>, ShareImageRequest>() {
+) :
+    UseCaseIoDispatcherWithRequest<Result<String>, ShareImageRequest>() {
 
     override suspend fun invoke(): Result<String> {
-        return photosRepository.saveImageToCache(
+        return photosRepository.saveImageToGallery(
             uri = request.imageUri,
             filterType = request.filter
         )

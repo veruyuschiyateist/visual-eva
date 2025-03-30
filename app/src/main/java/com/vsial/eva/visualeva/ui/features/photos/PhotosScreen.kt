@@ -2,6 +2,9 @@
 
 package com.vsial.eva.visualeva.ui.features.photos
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -58,6 +61,14 @@ fun PhotosScreen() {
     val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
     var requestedCamera by remember { mutableStateOf(false) }
 
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            navController.navigate(FiltersRoute(it.toString()))
+        }
+    }
+
     LaunchedEffect(cameraPermissionState.status.isGranted, requestedCamera) {
         if (cameraPermissionState.status.isGranted && requestedCamera) {
             navController.navigate(CameraRoute)
@@ -90,7 +101,9 @@ fun PhotosScreen() {
                 cameraPermissionState.launchPermissionRequest()
             }
         },
-        onGalleryClicked = {}
+        onGalleryClicked = {
+            galleryLauncher.launch("image/*")
+        }
     )
 }
 
@@ -165,7 +178,9 @@ fun PhotosContent(
                 onPhotoCameraClick = {
                     onCameraClicked.invoke()
                 },
-                onGalleryClick = {}
+                onGalleryClick = {
+                    onGalleryClicked.invoke()
+                }
             )
         }
     }

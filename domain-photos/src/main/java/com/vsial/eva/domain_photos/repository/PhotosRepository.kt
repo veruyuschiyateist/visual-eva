@@ -8,5 +8,7 @@ interface PhotosRepository {
 
     suspend fun loadLocalCameraPhotos(): Result<List<CameraPhoto>>
 
-    suspend fun generateFilteredImageUri(uri: String, filterType: ImageFilterType): Result<String>
+    suspend fun saveImageToCache(uri: String, filterType: ImageFilterType): Result<String>
+
+    suspend fun saveImageToGallery(uri: String, filterType: ImageFilterType): Result<String>
 }

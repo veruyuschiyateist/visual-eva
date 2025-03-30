@@ -50,12 +50,14 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.vsial.eva.visualeva.R
 import androidx.core.net.toUri
+import com.vsial.eva.visualeva.ui.features.LocalNavController
 import com.vsial.eva.visualeva.ui.mappers.UiImageFilterType
 
 @Composable
 fun FiltersScreen(imageUri: String) {
 
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val viewModel = hiltViewModel<FiltersViewModel>()
 
     LaunchedEffect(Unit) {
@@ -71,15 +73,16 @@ fun FiltersScreen(imageUri: String) {
 
     FiltersContent(
         imageUri = imageUri,
-        onClose = {},
+        onClose = { navController.popBackStack() },
         onImageShare = viewModel::share,
-        onConfirm = {})
+        onConfirm = viewModel::saveImage
+    )
 }
 
 @Composable
 fun FiltersContent(
     imageUri: String,
-    onConfirm: () -> Unit,
+    onConfirm: (String, UiImageFilterType) -> Unit,
     onImageShare: (String, UiImageFilterType) -> Unit,
     onClose: () -> Unit
 ) {
@@ -110,7 +113,7 @@ fun FiltersContent(
             onShare = {
                 onImageShare.invoke(imageUri, selectedFilter)
             },
-            onConfirm = { onConfirm.invoke() })
+            onConfirm = { onConfirm.invoke(imageUri, selectedFilter) })
     }
 }
 
@@ -241,7 +244,7 @@ fun FiltersSelectionBar(
 fun FiltersPreview() {
     FiltersContent(
         imageUri = "https://picsum.photos/800",
-        onConfirm = {},
+        onConfirm = { _, _ -> },
         onImageShare = { _, _ -> },
         onClose = {})
 }

@@ -157,8 +157,8 @@ class CameraRepositoryImpl @Inject constructor(
                 put(MediaStore.Images.Media.DATE_TAKEN, nowTimestamp)
                 put(MediaStore.Images.Media.DATE_ADDED, nowTimestamp)
                 put(MediaStore.Images.Media.DATE_MODIFIED, nowTimestamp)
-                put(MediaStore.Images.Media.AUTHOR, "Your Name")
-                put(MediaStore.Images.Media.DESCRIPTION, "Your description")
+                put(MediaStore.Images.Media.AUTHOR, "visual eva")
+                put(MediaStore.Images.Media.DESCRIPTION, "visual eva")
             }
         }
 

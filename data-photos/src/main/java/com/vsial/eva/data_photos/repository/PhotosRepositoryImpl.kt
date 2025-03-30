@@ -1,12 +1,11 @@
 package com.vsial.eva.data_photos.repository
 
 import android.content.ContentUris
+import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Canvas
-import android.graphics.ColorMatrixColorFilter
-import android.graphics.Paint
+import android.os.Build
+import android.os.Environment
 import android.provider.MediaStore
 import androidx.core.content.FileProvider
 import com.vsial.eva.domain_core.Result
@@ -17,10 +16,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
-import androidx.core.net.toUri
-import androidx.core.graphics.createBitmap
-import com.vsial.eva.data_photos.mappers.toColorMatrix
+import com.vsial.eva.data_photos.processors.ImageProcessingService
 import java.io.FileOutputStream
+import java.io.IOException
+import java.io.OutputStream
 
 @Singleton
 class PhotosRepositoryImpl @Inject constructor(
@@ -61,42 +60,70 @@ class PhotosRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun generateFilteredImageUri(
+    override suspend fun saveImageToCache(
         uri: String,
         filterType: ImageFilterType
     ): Result<String> {
         return Result.of {
-            val imageUri = uri.toUri()
-            val inputStream = context.contentResolver.openInputStream(imageUri)
-            val sourceBitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
-
-            val resultBitmap = createBitmap(sourceBitmap.width, sourceBitmap.height)
-
-            val canvas = Canvas(resultBitmap)
-            val paint = Paint()
-
-            filterType.toColorMatrix()?.let { matrix ->
-                paint.colorFilter = ColorMatrixColorFilter(matrix)
-            }
-
-            canvas.drawBitmap(sourceBitmap, 0f, 0f, paint)
+            val bitmap = ImageProcessingService.generateFilteredBitmap(context, uri, filterType)
 
             val file =
                 File(context.cacheDir, "$FILTERED_IMAGE_PREFIX${System.currentTimeMillis()}.jpg")
-            FileOutputStream(file).use { outputStream ->
-                resultBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+            FileOutputStream(file).use { output ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, output)
             }
 
-            cleanUpCache(exclude = file)
+            cleanUpCache(file)
 
-            val contentUri = FileProvider.getUriForFile(
+            FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.provider",
                 file
-            )
+            ).toString()
+        }
+    }
 
-            contentUri.toString()
+    override suspend fun saveImageToGallery(
+        uri: String,
+        filterType: ImageFilterType
+    ): Result<String> {
+        return Result.of {
+            val bitmap = ImageProcessingService.generateFilteredBitmap(context, uri, filterType)
+            val resolver = context.contentResolver
+
+            val imageCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+            } else {
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            }
+
+            val fileName = "FILTERED_IMG_${System.currentTimeMillis()}.jpg"
+            val contentValues = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
+                put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(
+                        MediaStore.Images.Media.RELATIVE_PATH,
+                        "${Environment.DIRECTORY_DCIM}/camera_photos"
+                    )
+                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+            }
+
+            val savedUri = resolver.insert(imageCollection, contentValues)
+                ?: throw IOException("Failed to create MediaStore entry")
+
+            resolver.openOutputStream(savedUri)?.use { output ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, output)
+            } ?: throw IOException("Failed to open output stream for $savedUri")
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                contentValues.clear()
+                contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                resolver.update(savedUri, contentValues, null, null)
+            }
+
+            savedUri.toString()
         }
     }
 
