@@ -7,3 +7,6 @@ data object PhotosRoute
 
 @Serializable
 data object CameraRoute
+
+@Serializable
+data object FiltersRoute

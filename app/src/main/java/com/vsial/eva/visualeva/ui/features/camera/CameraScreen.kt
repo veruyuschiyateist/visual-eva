@@ -2,11 +2,6 @@
 
 package com.vsial.eva.visualeva.ui.features.camera
 
-import androidx.camera.core.Camera
-import androidx.camera.core.CameraSelector
-import androidx.camera.view.CameraController.IMAGE_ANALYSIS
-import androidx.camera.view.CameraController.IMAGE_CAPTURE
-import androidx.camera.view.LifecycleCameraController
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -66,6 +61,9 @@ fun CameraScreen() {
         cameraPermissionState.launchPermissionRequest()
     }
 
+    /*
+        Permissions temporarily added here, but should be moved to the Photos Screen
+     */
     when {
         cameraPermissionState.status.isGranted -> {
             CameraContent(

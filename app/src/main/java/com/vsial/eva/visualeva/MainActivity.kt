@@ -12,9 +12,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.vsial.eva.visualeva.ui.features.CameraRoute
+import com.vsial.eva.visualeva.ui.features.FiltersRoute
 import com.vsial.eva.visualeva.ui.features.PhotosRoute
 import com.vsial.eva.visualeva.ui.features.LocalNavController
 import com.vsial.eva.visualeva.ui.features.camera.CameraScreen
+import com.vsial.eva.visualeva.ui.features.filters.FiltersScreen
 import com.vsial.eva.visualeva.ui.features.photos.PhotosScreen
 import com.vsial.eva.visualeva.ui.theme.VisualEvaTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -45,6 +47,7 @@ fun VisualEvaNavApp() {
         ) {
             composable<PhotosRoute> { PhotosScreen() }
             composable<CameraRoute> { CameraScreen() }
+            composable<FiltersRoute> { FiltersScreen() }
         }
     }
 }

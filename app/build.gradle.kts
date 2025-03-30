@@ -48,7 +48,8 @@ dependencies {
 
     implementation(project(":domain-camera"))
     implementation(project(":data-camera"))
-    
+
+    implementation(project(":domain-photos"))
     implementation(project(":data-photos"))
 
     implementation(libs.androidx.core.ktx)
@@ -87,6 +88,7 @@ dependencies {
 
     // Coil
     implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 
     // CameraX  
     implementation(libs.androidx.camera.core)

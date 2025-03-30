@@ -31,46 +31,62 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.vsial.eva.domain_core.Result
+import com.vsial.eva.domain_photos.model.CameraPhoto
 import com.vsial.eva.visualeva.ui.components.PillIconBar
 import com.vsial.eva.visualeva.ui.features.CameraRoute
+import com.vsial.eva.visualeva.ui.features.FiltersRoute
 import com.vsial.eva.visualeva.ui.features.LocalNavController
-
-data class ImageItem(
-    val id: String,
-    val imageUrl: String
-)
 
 @Composable
 fun PhotosScreen() {
     val navController = LocalNavController.current
-    
-    PhotosContent(
-        onItemClick = {
-            navController.navigate(CameraRoute)
+    val viewModel = hiltViewModel<PhotosViewModel>()
+    val photosState by viewModel.localPhotosFlow.collectAsStateWithLifecycle()
+
+    val images: List<CameraPhoto> = when (photosState) {
+        is Result.Success<*> -> {
+            (photosState as Result.Success<List<CameraPhoto>>).data.map {
+                CameraPhoto(id = it.id, uri = it.uri)
+            }
         }
+
+        is Result.Error -> {
+            emptyList()
+        }
+    }
+
+    PhotosContent(
+        imagesList = { images },
+        onItemClick = {
+            navController.navigate(FiltersRoute)
+        },
+        onCameraClick = {
+            navController.navigate(CameraRoute)
+        },
+        onGalleryClicked = {}
     )
 }
 
 @Composable
 fun PhotosContent(
-    onItemClick: () -> Unit
+    imagesList: () -> List<CameraPhoto>,
+    onItemClick: () -> Unit,
+    onCameraClick: () -> Unit,
+    onGalleryClicked: () -> Unit
 ) {
-
     var selectedTab by remember { mutableStateOf("Recents") }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
     ) {
-
-
-        val imageItem = ImageItem(
-            id = "1",
-            imageUrl = ""
-        )
 
         Column(
             modifier = Modifier
@@ -80,7 +96,6 @@ fun PhotosContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top,
         ) {
-
             Text(
                 text = "Media",
                 color = Color.White,
@@ -115,18 +130,20 @@ fun PhotosContent(
             Spacer(modifier = Modifier.height(24.dp))
 
             SelectableImageGrid(
-                items = List(25) { imageItem },
-                onItemClick = {}
+                items = imagesList.invoke(),
+                onItemClick = { onItemClick.invoke() }
             )
         }
-
+                
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 24.dp)
         ) {
             PillIconBar(
-                onPhotoCameraClick = {},
+                onPhotoCameraClick = {
+                    onCameraClick.invoke()
+                },
                 onGalleryClick = {}
             )
         }
@@ -135,7 +152,7 @@ fun PhotosContent(
 
 @Composable
 fun SelectableImageGrid(
-    items: List<ImageItem>,
+    items: List<CameraPhoto>,
     onItemClick: (String) -> Unit
 ) {
     LazyVerticalGrid(
@@ -158,7 +175,7 @@ fun SelectableImageGrid(
 
 @Composable
 fun ImageGridItem(
-    item: ImageItem,
+    item: CameraPhoto,
     onClick: () -> Unit
 ) {
     Box(
@@ -170,7 +187,7 @@ fun ImageGridItem(
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(item.imageUrl)
+                .data(item.uri)
                 .crossfade(true)
                 .build(),
             contentDescription = null,
@@ -184,6 +201,9 @@ fun ImageGridItem(
 @Composable
 fun GalleryPreview() {
     PhotosContent(
-        onItemClick = {}
+        imagesList = { emptyList() },
+        onItemClick = {},
+        onCameraClick = {},
+        onGalleryClicked = {}
     )
 }
