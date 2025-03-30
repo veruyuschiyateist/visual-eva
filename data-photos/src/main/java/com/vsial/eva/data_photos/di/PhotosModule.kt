@@ -2,6 +2,9 @@ package com.vsial.eva.data_photos.di
 
 import com.vsial.eva.data_photos.network.AuthInterceptor
 import com.vsial.eva.data_photos.network.UnsplashService
+import com.vsial.eva.data_photos.repository.PhotosRepositoryImpl
+import com.vsial.eva.domain_photos.repository.PhotosRepository
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -13,7 +16,7 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object DataModule {
+object PhotosModule {
 
     @Provides
     @Singleton
@@ -33,6 +36,11 @@ object DataModule {
             .addInterceptor(AuthInterceptor.build(UNSPLASH_API_KEY))
             .build()
     }
+
+    @Provides
+    @Singleton
+    fun bindPhotosRepository(photosRepository: PhotosRepositoryImpl): PhotosRepository =
+        photosRepository
 
     private const val UNSPLASH_BASE_URL = "https://api.unsplash.com/"
     private const val UNSPLASH_API_KEY = "zBen9c7VCaqo7DVH1WYdyL8JLxP1UIjuAizzo1w3p9Q"

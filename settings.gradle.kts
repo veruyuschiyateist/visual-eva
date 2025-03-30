@@ -7,6 +7,7 @@ pluginManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
+        maven { setUrl("https://jitpack.io") }
         mavenCentral()
         gradlePluginPortal()
     }
@@ -14,6 +15,7 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        maven { setUrl("https://jitpack.io") }
         google()
         mavenCentral()
     }
@@ -25,3 +27,4 @@ include(":data-photos")
 include(":data-camera")
 include(":domain-camera")
 include(":domain-core")
+include(":domain-photos")

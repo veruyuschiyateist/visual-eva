@@ -96,4 +96,8 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.camera.extensions)
     implementation(libs.accompanist.permissions)
+
+    // GPUImage
+    implementation("jp.co.cyberagent.android:gpuimage:2.1.0")
+
 }

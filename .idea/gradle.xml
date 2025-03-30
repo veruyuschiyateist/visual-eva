@@ -15,6 +15,7 @@
             <option value="$PROJECT_DIR$/data-photos" />
             <option value="$PROJECT_DIR$/domain-camera" />
             <option value="$PROJECT_DIR$/domain-core" />
+            <option value="$PROJECT_DIR$/domain-photos" />
           </set>
         </option>
       </GradleProjectSettings>

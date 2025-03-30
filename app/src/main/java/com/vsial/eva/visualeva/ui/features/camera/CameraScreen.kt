@@ -2,6 +2,7 @@
 
 package com.vsial.eva.visualeva.ui.features.camera
 
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.view.CameraController.IMAGE_ANALYSIS
 import androidx.camera.view.CameraController.IMAGE_CAPTURE
@@ -23,12 +24,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.ImageSearch
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -52,6 +56,7 @@ import com.vsial.eva.visualeva.ui.features.LocalNavController
 fun CameraScreen() {
 
     val viewModel = hiltViewModel<CameraViewModel>()
+    val cameraState: CameraState by viewModel.cameraFlow.collectAsStateWithLifecycle()
 
     val navController = LocalNavController.current
 
@@ -64,11 +69,13 @@ fun CameraScreen() {
     when {
         cameraPermissionState.status.isGranted -> {
             CameraContent(
+                state = cameraState,
                 onPhotosClicked = {
                     navController.popBackStack()
                 },
                 onToggleCamera = viewModel::toggleCamera,
-                onCapturePhoto = viewModel::capturePhoto
+                onCapturePhoto = viewModel::capturePhoto,
+                onSelectCamera = viewModel::selectCamera
             )
         }
 
@@ -90,7 +97,11 @@ fun CameraScreen() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CameraContent(
-    onPhotosClicked: () -> Unit, onToggleCamera: () -> Unit, onCapturePhoto: () -> Unit
+    state: CameraState,
+    onPhotosClicked: () -> Unit,
+    onToggleCamera: () -> Unit,
+    onCapturePhoto: () -> Unit,
+    onSelectCamera: (String) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -134,6 +145,28 @@ fun CameraContent(
                     )
                 }
             }
+
+            LazyRow(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 64.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp)
+            ) {
+                items(state.availableCameras) { cameraType ->
+                    FilterChip(
+                        selected = cameraType.id == state.selectedCameraId,
+                        onClick = { onSelectCamera(cameraType.id) },
+                        label = { Text(cameraType.label.displayName, color = Color.Black) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color.White,
+                            selectedLabelColor = Color.Black,
+                            labelColor = Color.White
+                        )
+                    )
+                }
+            }
         }
 
         Row(
@@ -152,14 +185,19 @@ fun CameraContent(
                     modifier = Modifier.size(48.dp)
                 )
             }
-            IconButton(
-                onClick = { onCapturePhoto.invoke() }) {
-                Icon(
-                    imageVector = Icons.Default.Camera,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(48.dp)
-                )
+
+            if (state.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(48.dp))
+            } else {
+                IconButton(
+                    onClick = { onCapturePhoto.invoke() }) {
+                    Icon(
+                        imageVector = Icons.Default.Camera,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
             }
             IconButton(
                 onClick = {
@@ -179,5 +217,11 @@ fun CameraContent(
 @Preview(showSystemUi = true, showBackground = true)
 @Composable()
 fun CameraContentPreview() {
-    CameraContent(onPhotosClicked = {}, onToggleCamera = {}, onCapturePhoto = {})
+    CameraContent(
+        state = CameraState(),
+        onPhotosClicked = {},
+        onToggleCamera = {},
+        onCapturePhoto = {},
+        onSelectCamera = {}
+    )
 }

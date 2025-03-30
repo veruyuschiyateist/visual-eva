@@ -1,13 +1,22 @@
 package com.vsial.eva.data_camera.repository
 
+import android.content.ContentResolver
+import android.content.ContentValues
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.hardware.camera2.CameraCharacteristics
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.annotation.OptIn
 import androidx.camera.camera2.interop.Camera2CameraInfo
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.LifecycleCameraController
 import androidx.core.content.ContextCompat
@@ -18,11 +27,10 @@ import com.vsial.eva.domain_camera.repository.CameraRepository
 import com.vsial.eva.domain_core.Result
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.suspendCancellableCoroutine
-import java.io.File
+import java.io.OutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 @Singleton
 class CameraRepositoryImpl @Inject constructor(
@@ -92,28 +100,99 @@ class CameraRepositoryImpl @Inject constructor(
     }
 
     override suspend fun capturePhoto(): Result<PhotoPath> {
-        return Result.of {
-            val outputDir = File(context.cacheDir, "camera_photos").apply { mkdirs() }
-            val photoFile =
-                File.createTempFile("IMG_${System.currentTimeMillis()}", ".jpg", outputDir)
+        return suspendCancellableCoroutine<Result<PhotoPath>> { continuation ->
+            cameraController.takePicture(
+                ContextCompat.getMainExecutor(context),
+                object : ImageCapture.OnImageCapturedCallback() {
+                    override fun onCaptureSuccess(image: ImageProxy) {
+                        val bitmap = image.toBitmap().rotateBitmap(image.imageInfo.rotationDegrees)
+                        val result = saveImage(bitmap)
+                        image.close()
 
-            val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
-
-            suspendCancellableCoroutine<PhotoPath> { continuation ->
-                cameraController.takePicture(
-                    outputOptions,
-                    ContextCompat.getMainExecutor(context),
-                    object : ImageCapture.OnImageSavedCallback {
-                        override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                            continuation.resume(PhotoPath(photoFile.absolutePath))
-                        }
-
-                        override fun onError(exception: ImageCaptureException) {
-                            continuation.resumeWithException(exception)
-                        }
+                        continuation.resume(result)
                     }
-                )
-            }
+
+                    override fun onError(exception: ImageCaptureException) {
+                        super.onError(exception)
+
+                        continuation.resume(Result.Error(exception))
+                    }
+                }
+            )
         }
     }
+
+    fun Bitmap.rotateBitmap(rotationDegrees: Int): Bitmap {
+        val matrix = Matrix().apply {
+            postRotate(-rotationDegrees.toFloat())
+            postScale(-1f, -1f)
+        }
+
+        return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
+    }
+
+    private fun saveImage(capturePhotoBitmap: Bitmap): Result<PhotoPath> {
+        val resolver: ContentResolver = context.applicationContext.contentResolver
+
+        val imageCollection: Uri = when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> MediaStore.Images.Media.getContentUri(
+                MediaStore.VOLUME_EXTERNAL_PRIMARY
+            )
+
+            else -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+
+        val nowTimestamp: Long = System.currentTimeMillis()
+        val imageContentValues: ContentValues = ContentValues().apply {
+
+            put(MediaStore.Images.Media.DISPLAY_NAME, "IMG_${System.currentTimeMillis()}" + ".jpg")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpg")
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.MediaColumns.DATE_TAKEN, nowTimestamp)
+                put(
+                    MediaStore.MediaColumns.RELATIVE_PATH,
+                    Environment.DIRECTORY_DCIM + "/camera_photos"
+                )
+                put(MediaStore.MediaColumns.IS_PENDING, 1)
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                put(MediaStore.Images.Media.DATE_TAKEN, nowTimestamp)
+                put(MediaStore.Images.Media.DATE_ADDED, nowTimestamp)
+                put(MediaStore.Images.Media.DATE_MODIFIED, nowTimestamp)
+                put(MediaStore.Images.Media.AUTHOR, "Your Name")
+                put(MediaStore.Images.Media.DESCRIPTION, "Your description")
+            }
+        }
+
+        val imageMediaStoreUri: Uri? = resolver.insert(imageCollection, imageContentValues)
+
+        val result: Result<PhotoPath> = imageMediaStoreUri?.let { uri ->
+            runCatching {
+                resolver.openOutputStream(uri).use { outputStream: OutputStream? ->
+                    checkNotNull(outputStream) { "Couldn't create file for gallery, MediaStore output stream is null" }
+                    capturePhotoBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    imageContentValues.clear()
+                    imageContentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                    resolver.update(uri, imageContentValues, null, null)
+                }
+
+                Result.Success(PhotoPath(uri.toString()))
+            }.getOrElse { exception: Throwable ->
+                exception.message?.let(::println)
+                resolver.delete(uri, null, null)
+
+                Result.Error(exception)
+            }
+        } ?: run {
+            Result.Error(Exception("Couldn't create file for gallery"))
+        }
+
+        return result
+    }
+
 }

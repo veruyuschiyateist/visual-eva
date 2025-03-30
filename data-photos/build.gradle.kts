@@ -37,6 +37,9 @@ android {
 
 dependencies {
 
+    implementation(project(":domain-core"))
+    implementation(project(":domain-photos"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
