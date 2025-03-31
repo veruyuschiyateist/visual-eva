@@ -3,9 +3,12 @@ package com.vsial.eva.data_photos.repository
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
+import android.database.ContentObserver
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import androidx.core.content.FileProvider
 import com.vsial.eva.domain_core.Result
@@ -17,6 +20,10 @@ import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 import com.vsial.eva.data_photos.processors.ImageProcessingService
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
@@ -25,6 +32,27 @@ import java.io.OutputStream
 class PhotosRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context
 ) : PhotosRepository {
+
+    override fun observeLocalPhotos(): Flow<Result<List<CameraPhoto>>> = callbackFlow {
+        val resolver = context.contentResolver
+        val imagesUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                launch {
+                    trySend(loadLocalCameraPhotos())
+                }
+            }
+        }
+
+        resolver.registerContentObserver(imagesUri, true, observer)
+
+        trySend(loadLocalCameraPhotos())
+
+        awaitClose {
+            resolver.unregisterContentObserver(observer)
+        }
+    }
 
     companion object {
         const val FILTERED_IMAGE_PREFIX = "filtered_image_"

@@ -129,7 +129,7 @@ class CameraRepositoryImpl @Inject constructor(
 
     private fun saveImage(capturePhotoBitmap: Bitmap): Result<PhotoPath> {
         val resolver: ContentResolver = context.applicationContext.contentResolver
-
+    
         val imageCollection: Uri = when {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> MediaStore.Images.Media.getContentUri(
                 MediaStore.VOLUME_EXTERNAL_PRIMARY

@@ -2,6 +2,7 @@
 
 package com.vsial.eva.visualeva.ui.features.photos
 
+import android.Manifest
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,6 +22,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -56,9 +58,9 @@ import com.vsial.eva.visualeva.ui.features.LocalNavController
 fun PhotosScreen() {
     val navController = LocalNavController.current
     val viewModel = hiltViewModel<PhotosViewModel>()
-    val photosState by viewModel.localPhotosFlow.collectAsStateWithLifecycle()
+    val photosState by viewModel.photosState.collectAsStateWithLifecycle()
 
-    val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
+    val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
     var requestedCamera by remember { mutableStateOf(false) }
 
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -76,20 +78,10 @@ fun PhotosScreen() {
         }
     }
 
-    val images: List<CameraPhoto> = when (photosState) {
-        is Result.Success<*> -> {
-            (photosState as Result.Success<List<CameraPhoto>>).data.map {
-                CameraPhoto(id = it.id, uri = it.uri)
-            }
-        }
-
-        is Result.Error -> {
-            emptyList()
-        }
-    }
-
     PhotosContent(
-        imagesList = { images },
+        isLoading = photosState.isLoading,
+        imagesList = { photosState.images },
+        errorMessage = photosState.errorMessage,
         onImageClicked = { imageUri ->
             navController.navigate(FiltersRoute(imageUri))
         },
@@ -109,13 +101,15 @@ fun PhotosScreen() {
 
 @Composable
 fun PhotosContent(
+    isLoading: Boolean = true,
+    errorMessage: String? = null,
     imagesList: () -> List<CameraPhoto>,
     onImageClicked: (String) -> Unit,
     onCameraClicked: () -> Unit,
     onGalleryClicked: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf("Recents") }
-
+    
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -163,10 +157,14 @@ fun PhotosContent(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            SelectableImageGrid(
-                items = imagesList.invoke(),
-                onItemClick = { onImageClicked.invoke(it) }
-            )
+            if (isLoading) {
+                CircularProgressIndicator()
+            } else {
+                SelectableImageGrid(
+                    items = imagesList.invoke(),
+                    onItemClick = { onImageClicked.invoke(it) }
+                )
+            }
         }
 
         Box(
@@ -232,6 +230,20 @@ fun ImageGridItem(
         )
     }
 }
+
+val PhotosUiState.images: List<CameraPhoto>
+    get() = when (this) {
+        is PhotosUiState.Success -> data
+        is PhotosUiState.Empty -> emptyList()
+        is PhotosUiState.Error -> emptyList()
+        PhotosUiState.Loading -> emptyList()
+    }
+
+val PhotosUiState.isLoading: Boolean
+    get() = this is PhotosUiState.Loading
+
+val PhotosUiState.errorMessage: String?
+    get() = if (this is PhotosUiState.Error) message else null
 
 @Preview(showSystemUi = true, showBackground = true)
 @Composable
